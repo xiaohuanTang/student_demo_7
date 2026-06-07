@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>学生信息管理系统</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background: #f6f7fb; }
+        h2 { margin-bottom: 16px; }
+        .card { background: #fff; padding: 18px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+        input { padding: 8px; margin: 4px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 12px; margin: 4px; border: 0; border-radius: 4px; cursor: pointer; }
+        .primary { background: #1677ff; color: white; }
+        .danger { background: #ff4d4f; color: white; }
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        th, td { border: 1px solid #e5e5e5; padding: 9px; text-align: center; }
+        th { background: #fafafa; }
+    </style>
+</head>
+<body>
+<h2>学生信息管理系统</h2>
+
+<div class="card">
+    <input id="id" type="hidden">
+    <input id="studentNo" placeholder="学号">
+    <input id="name" placeholder="姓名">
+    <input id="gender" placeholder="性别">
+    <input id="age" type="number" placeholder="年龄">
+    <input id="className" placeholder="班级">
+    <input id="major" placeholder="专业">
+    <button class="primary" onclick="saveStudent()">保存</button>
+    <button onclick="resetForm()">清空</button>
+</div>
+
+<div class="card">
+    <input id="searchName" placeholder="按姓名模糊查询">
+    <input id="searchClass" placeholder="按班级查询">
+    <input id="searchMajor" placeholder="按专业查询">
+    <button class="primary" onclick="loadStudents()">查询</button>
+    <button onclick="resetSearch()">显示全部</button>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>学号</th>
+        <th>姓名</th>
+        <th>性别</th>
+        <th>年龄</th>
+        <th>班级</th>
+        <th>专业</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody id="studentBody"></tbody>
+</table>
+
+<script>
+    async function loadStudents() {
+        const params = new URLSearchParams();
+        const name = document.getElementById('searchName').value.trim();
+        const className = document.getElementById('searchClass').value.trim();
+        const major = document.getElementById('searchMajor').value.trim();
+        if (name) params.append('name', name);
+        if (className) params.append('className', className);
+        if (major) params.append('major', major);
+        const response = await fetch('/api/students?' + params.toString());
+        const data = await response.json();
+        render(data);
+    }
+
+    function render(data) {
+        const tbody = document.getElementById('studentBody');
+        tbody.innerHTML = '';
+        data.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${item.studentNo}</td>
+                    <td>${item.name}</td>
+                    <td>${item.gender || ''}</td>
+                    <td>${item.age || ''}</td>
+                    <td>${item.className || ''}</td>
+                    <td>${item.major || ''}</td>
+                    <td>
+                        <button onclick='editStudent(${JSON.stringify(item)})'>编辑</button>
+                        <button class="danger" onclick="deleteStudent(${item.id})">删除</button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    async function saveStudent() {
+        const id = document.getElementById('id').value;
+        const student = {
+            studentNo: document.getElementById('studentNo').value.trim(),
+            name: document.getElementById('name').value.trim(),
+            gender: document.getElementById('gender').value.trim(),
+            age: Number(document.getElementById('age').value),
+            className: document.getElementById('className').value.trim(),
+            major: document.getElementById('major').value.trim()
+        };
+        const url = id ? `/api/students/${id}` : '/api/students';
+        const method = id ? 'PUT' : 'POST';
+        await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(student)
+        });
+        resetForm();
+        await loadStudents();
+    }
+
+    function editStudent(item) {
+        document.getElementById('id').value = item.id;
+        document.getElementById('studentNo').value = item.studentNo;
+        document.getElementById('name').value = item.name;
+        document.getElementById('gender').value = item.gender || '';
+        document.getElementById('age').value = item.age || '';
+        document.getElementById('className').value = item.className || '';
+        document.getElementById('major').value = item.major || '';
+    }
+
+    async function deleteStudent(id) {
+        if (!confirm('确定删除该学生吗？')) return;
+        await fetch(`/api/students/${id}`, { method: 'DELETE' });
+        await loadStudents();
+    }
+
+    function resetForm() {
+        document.getElementById('id').value = '';
+        document.getElementById('studentNo').value = '';
+        document.getElementById('name').value = '';
+        document.getElementById('gender').value = '';
+        document.getElementById('age').value = '';
+        document.getElementById('className').value = '';
+        document.getElementById('major').value = '';
+    }
+
+    function resetSearch() {
+        document.getElementById('searchName').value = '';
+        document.getElementById('searchClass').value = '';
+        document.getElementById('searchMajor').value = '';
+        loadStudents();
+    }
+
+    loadStudents();
+</script>
+</body>
+</html>
